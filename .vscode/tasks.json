@@ -1,0 +1,68 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Docker: build image",
+            "type": "shell",
+            "command": "/bin/bash -c \"./scripts/docker-build-image.sh\"",
+            "problemMatcher": []
+        },
+        {
+            "label": "Docker: compose up -d",
+            "type": "shell",
+            "command": "/bin/bash -c \"docker compose up -d\"",
+            "problemMatcher": []
+        },
+        {
+            "label": "Docker: compose down",
+            "type": "shell",
+            "command": "/bin/bash -c \"docker compose down\"",
+            "problemMatcher": []
+        },
+        {
+            "label": "Run in Docker: migrations and initial data",
+            "type": "shell",
+            "command": "/bin/bash -c \"./scripts/docker-run-migrations.sh\"",
+            "problemMatcher": []
+        },
+        {
+            "label": "Run in Docker: downgrade migrations",
+            "type": "shell",
+            "command": "/bin/bash -c \"./scripts/docker-run-migrations-down.sh\"",
+            "problemMatcher": []
+        },
+        {
+            "label": "Run in Docker: populators",
+            "type": "shell",
+            "command": "/bin/bash -c \"./scripts/docker-run-populators.sh\"",
+            "problemMatcher": []
+        },
+        {
+            "label": "Run FastAPI server",
+            "type": "shell",
+            "command": "python ./src/main.py"
+        },
+        {
+            "label": "Alembic downgrade base",
+            "type": "shell",
+            "command": "alembic downgrade base"
+        },
+        {
+            "label": "Alembic upgrade head",
+            "type": "shell",
+            "command": "alembic upgrade head"
+        },
+        {
+            "label": "Populate DB with initial data",
+            "type": "shell",
+            "command": "python ./src/initial_data.py"
+        },
+        {
+            "label": "Populate DB with random demo data",
+            "type": "shell",
+            "command": "python ./src/db/random_populator/random_main.py"
+        }
+    ]
+}

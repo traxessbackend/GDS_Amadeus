@@ -8,7 +8,8 @@ from typing import Any
 
 import lxml
 import lxml.etree
-import ulid
+
+from helpers.ulid_helper import ulid_as_str
 
 
 class SOAPMixin:
@@ -17,8 +18,8 @@ class SOAPMixin:
         return "".join([random.choice(string.ascii_letters + string.digits) for n in range(length)])
 
     @staticmethod
-    def get_uuid_as_str() -> str:
-        return str(ulid.ULID().to_uuid4())
+    def get_ulid_as_str() -> str:
+        return ulid_as_str()
 
     @staticmethod
     def get_digest(password: str, nonce: str, created_timestamp: datetime) -> str:

@@ -1,5 +1,6 @@
 import logging
 import os
+from decimal import Decimal
 from pathlib import Path
 from typing import ClassVar
 
@@ -39,7 +40,11 @@ class Settings(BaseSettings):
 
     WORKDIR: str
 
-    SLACK_WEB_HOOCK_URL: str
+    SLACK_WEBHOOK_URL: str | None = None
+    QUEUE_ALERT_TOTAL_RATIO: int = 100
+    QUEUE_ALERT_LEVEL_ACCESIBLE: Decimal = Decimal(2.0)
+
+    QUEUE_IDS: list[int]
 
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
         env_file=_get_env_file(),

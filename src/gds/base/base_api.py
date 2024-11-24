@@ -37,7 +37,7 @@ class BaseAPI:
         date = BaseAPI.utc_date_short()
         path = Path(root_dir / date)
         path.mkdir(parents=True, exist_ok=True)
-        fullpath = path / file_name
+        fullpath = path / file_name.strip().lower()
         with open(fullpath, "w") as f:
             f.write(data)
         return fullpath

@@ -1,5 +1,5 @@
 class AmadeusErrorsMixin:
-    QUERY_LIST_ERROR = {
+    ERRORS_PNR_LIST_IN_QUEUE = {
         "1": "Invalid date",
         "360": "Invalid PNR file address",
         "723": "Invalid category",
@@ -37,7 +37,7 @@ class AmadeusErrorsMixin:
         "92A": "queue category full",
     }
 
-    PNR_RETRIEVE_LIST_ERROR = {
+    ERRORS_PNR_RETRIEVE = {
         "31": "Finish or ignore. There is a modified PNR present",
         "284": "Secured PNR. The user has not the rights to retrieve the PNR",
         "1929": "Invalid record locator. The record locator is not Amadeus compliant",
@@ -46,7 +46,7 @@ class AmadeusErrorsMixin:
         "119": "Unable to retrieve PNR.	The PNR is corrupted on the database",
     }
 
-    REMOVE_ITEM_LIST_ERROR = {
+    ERRORS_DELETE_PNR_FROM_QUEUE = {
         "1": "Invalid date",
         "360": "Invalid PNR file address",
         "723": "Invalid category",
@@ -115,6 +115,15 @@ class AmadeusXMLItemsMixin:
         "{http://xml.amadeus.com/QDQLRR_11_1_1A}errorDefinition/"
         "{http://xml.amadeus.com/QDQLRR_11_1_1A}errorDetails/"
         "{http://xml.amadeus.com/QDQLRR_11_1_1A}errorCode"
+    )
+
+    PNR_GET_ERROR_CODE = (
+        "{http://schemas.xmlsoap.org/soap/envelope/}Body/"
+        "{http://xml.amadeus.com/PNRACC_17_1_1A}PNR_Reply/"
+        "{http://xml.amadeus.com/PNRACC_17_1_1A}errorReturn/"
+        "{http://xml.amadeus.com/PNRACC_17_1_1A}errorDefinition/"
+        "{http://xml.amadeus.com/PNRACC_17_1_1A}errorDetails/"
+        "{http://xml.amadeus.com/PNRACC_17_1_1A}errorCode"
     )
 
     PNR_DELETE_ERROR_CODE = {

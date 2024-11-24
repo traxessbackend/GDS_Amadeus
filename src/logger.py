@@ -72,7 +72,7 @@ def _traces_sampler(ctx):
 
 
 def init_slack_logger() -> SlackHandler:
-    sh = SlackHandler(settings.SLACK_WEB_HOOCK_URL)
+    sh = SlackHandler(settings.SLACK_WEBHOOK_URL)
     sh.setFormatter(SlackFormatter())
     sh.addFilter(SlackLogFilter())
     return sh

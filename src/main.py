@@ -27,7 +27,9 @@ def main() -> None:
         files_to_add = get_ulid_files_list_from_folders(
             sources=[settings.WORKDIR / "session", settings.WORKDIR / "current_pnr", settings]
         )
-        add_files_to_tar_gz(archive_path=archive_filename, tmp_folder=tmp_folder, files_to_add=files_to_add)
+        add_files_to_tar_gz(
+            archive_path=archive_filename, tmp_folder=tmp_folder, files_to_add=[rec[0] for rec in files_to_add]
+        )
     amadeus = AmadeusAPI(
         username=settings.USER,
         password=settings.PASSWORD,

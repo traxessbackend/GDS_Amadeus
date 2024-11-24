@@ -10,7 +10,7 @@ logger = logging.Logger(__name__)
 
 
 def rename_existing_file_with_increment(source_file: Path) -> Path | None:
-    if source_file.exists() and source_file.is_file():
+    if source_file and source_file.exists() and source_file.is_file():
         counter = 1
         destination_file = source_file
         while True:
@@ -52,20 +52,26 @@ def copy_file(source_path: Path, destination_path: Path) -> str | None:
 
 def get_ulid_files_list_from_folders(sources: list[Path]) -> dict[date, list[Path]]:
     # Regex pattern to match ULID, underscore, and date pattern in file names
-    pattern = re.compile(r"^([0-9A-Za-z]+)_(\d{4}-\d{2}-\d{2})")
+    pattern = re.compile(r"^([0-9A-Za-z]+)_.*")
 
     # Dictionary to group files by date
-    files_by_date = {}
+    files_with_date = []
     for source in sources:
         for file in source.iterdir():
-            if file.is_file() and (match := pattern.match(file.name)):
+            if file.is_file() and pattern.match(file.name):
                 ulid_str = file.name.split("_", 1)[0]
                 try:
-                    date_obj = date_from_ulid(ulid_str)
+                    if not (date_obj := date_from_ulid(ulid_str)):
+                        raise ValueError
                 except ValueError:
                     continue  # Skip files with invalid date formats
                 else:
                     # Add file to the corresponding date group
                     date_key = date_obj.strftime("%Y%m%d")
-                    files_by_date.setdefault(date_key, []).append(file)
-    return files_by_date
+                    files_with_date.append(
+                        (
+                            file,
+                            date_key,
+                        )
+                    )
+    return files_with_date

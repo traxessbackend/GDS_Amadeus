@@ -7,12 +7,11 @@ def date_from_ulid(ulid_obj: str | ULID) -> date | None:
     result: date | None = None
     try:
         if isinstance(ulid_obj, str):
-            ulid_obj = ULID(ulid_obj)
-
+            ulid_obj = ULID().from_str(ulid_obj)
         timestamp = int(ulid_obj.timestamp * 1000)
         datetime_obj = datetime.fromtimestamp(timestamp / 1000)
         result = datetime_obj.date()
-    except:
+    except ValueError:
         pass
     return result
 

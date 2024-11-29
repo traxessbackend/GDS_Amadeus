@@ -146,7 +146,7 @@ class AmadeusTemplatesMixin:
     <soapenv:Header xmlns:add="http://www.w3.org/2005/08/addressing">
        <add:MessageID>{messageid}</add:MessageID>
        <add:Action>{action}</add:Action>
-       <add:To>{To}</add:To>
+       <add:To>{to}</add:To>
        <oas:Security xmlns:oas="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:oas1="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">
             <oas:UsernameToken oas1:Id="UsernameToken-1">
                  <oas:Username>{username}</oas:Username>

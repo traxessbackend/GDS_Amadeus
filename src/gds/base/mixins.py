@@ -1,15 +1,17 @@
 import base64
 import hashlib
+import logging
 import random
 import re
 import string
 from datetime import datetime
 from typing import Any
 
-import lxml
-import lxml.etree
+from lxml.etree import XML, ElementTree, _Element, fromstring, tostring
 
 from helpers.ulid_helper import ulid_as_str
+
+logger = logging.Logger(__name__)
 
 
 class SOAPMixin:
@@ -33,8 +35,11 @@ class SOAPMixin:
         return digest.decode("utf-8")
 
     @staticmethod
-    def get_nonce64(nonce_length: int = 16) -> str:
-        nonce = SOAPMixin.get_random_string(nonce_length)
+    def generate_nonce(nonce_length: int = 16) -> str:
+        return SOAPMixin.get_random_string(nonce_length)
+
+    @staticmethod
+    def get_nonce64(nonce: str) -> str:
         return base64.b64encode(nonce.encode("utf-8")).decode("utf-8")
 
     @staticmethod
@@ -51,32 +56,34 @@ class SOAPMixin:
     def fill_out_template(
         cls, template_name: str, template_values: dict, strict_mode: bool = True
     ) -> tuple[bool, str | None]:
-        result: bool = False
+        error: bool = True
         result_template: str | None = None
-        if (template := cls.get_template_by_name(template_name)) and (
-            result_template := template.format(template_values)
-        ):
-            if strict_mode and cls.all_placeholders_filled(result_template):
-                result = True
-        return result, result_template
+        try:
+            if template := cls.get_template_by_name(template_name):
+                result_template = template.format(**template_values)
+                if strict_mode and cls.all_placeholders_filled(result_template):
+                    error = False
+        except KeyError:
+            logger.error("Key Error `%s` in template `%s`. Values: `%s`", template_name, template_values)
+        return error, result_template
 
 
 class XMLMixin:
     @staticmethod
-    def str_to_xml(xml_str: str) -> lxml.etree.ElementTree | None:
-        xml_root: lxml.etree.ElementTree | None = None
+    def str_to_xml(xml_str: str) -> _Element | None:
+        xml_root: _Element | None = None
         if xml_str:
             try:
-                xml_root = lxml.etree.fromstring(xml_str)
-            except:
-                pass
+                xml_root = fromstring(xml_str.encode())
+            except Exception as exc:
+                logger.error("`String to XML error  %s`", exc)
         return xml_root
 
     @staticmethod
     def pretty_xml(xml_str: str) -> str:
-        return lxml.etree.tostring(lxml.etree.XML(xml_str.encode("utf-8")), pretty_print=True)
+        return tostring(XML(xml_str.encode("utf-8")), pretty_print=True)
 
     @staticmethod
-    def get_all_xml_elements(xml_root: lxml.etree.ElementTree, selector: str) -> list[Any] | None:
+    def get_all_xml_elements(xml_root: ElementTree, selector: str) -> list[Any] | None:
         found_items = xml_root.findall(selector)
         return found_items

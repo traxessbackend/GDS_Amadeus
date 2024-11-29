@@ -64,14 +64,19 @@ class AmadeusAPI(
         self.queue_alert_total_accessible_ratio = queue_alert_total_accessible_ratio
         self.queue_alert_level_accessible: int = queue_alert_level_accessible
 
+        self.request_context = {}
+
     def _base_placeholders(self) -> dict:
+        nonce = self.generate_nonce()
+        created_at = self.utc_date()
+        created_at_str = created_at.strftime("%Y-%m-%dT%H:%M:%SZ")
         return {
             "messageid": self.get_ulid_as_str(),
             "to": self.API_URLS[self.env],
             "username": self.username,
-            "nonce": self.get_nonce64(),
-            "password": self.password,
-            "created": str(self.utc_date()),
+            "nonce": self.get_nonce64(nonce),
+            "password": self.get_digest(password=self.password, nonce=nonce, created_timestamp=created_at),
+            "created": created_at_str,
             "agentdutycode": AmadeusAPI.AgentDutyCode,
             "requestortype": AmadeusAPI.RequestorType,
             "pseudocitycode": self.pseudocitycode,
@@ -94,11 +99,10 @@ class AmadeusAPI(
             "Connection": "Keep-Alive",
         }
 
-    def _log_queue_info(self, xml_root: lxml.etree.ElementTree, env_data: dict | None = None) -> None:
+    def _log_queue_info(self, xml_root: lxml.etree.ElementTree) -> None:
         if number_of_units := self.get_all_xml_elements(xml_root=xml_root, selector=self.QUEUE_NUMBER_OF_UNITS):
-            env_data = env_data if isinstance(env_data, dict) else {}
-            queuenumber = env_data.get("queuenumber")
-            messageid = env_data.get("messageid")
+            queuenumber = self.request_context.get("queuenumber")
+            messageid = self.request_context.get("messageid")
             total = number_of_units[0].text
             accessible = number_of_units[1].text
             shown = number_of_units[2].text
@@ -113,11 +117,10 @@ class AmadeusAPI(
             )
         return None
 
-    def _log_queue_alert(self, xml_root: lxml.etree.ElementTree, env_data: dict | None = None) -> None:
+    def _log_queue_alert(self, xml_root: lxml.etree.ElementTree) -> None:
         if number_of_units := self.get_all_xml_elements(xml_root=xml_root, selector=self.QUEUE_NUMBER_OF_UNITS):
-            env_data = env_data if isinstance(env_data, dict) else {}
-            queuenumber = env_data.get("queuenumber")
-            messageid = env_data.get("messageid")
+            queuenumber = self.request_context.get("queuenumber")
+            messageid = self.request_context.get("messageid")
             total = number_of_units[0].text
             accessible = number_of_units[1].text
             if float(total) / float(accessible) >= self.queue_alert_total_accessible_ratio:
@@ -141,12 +144,11 @@ class AmadeusAPI(
                 )
         return None
 
-    def _log_queue_error(self, xml_root: lxml.etree.ElementTree, env_data: dict | None = None) -> dict[str, str] | None:
+    def _log_queue_error(self, xml_root: lxml.etree.ElementTree) -> dict[str, str] | None:
         if error_codes := self.get_all_xml_elements(xml_root=xml_root, selector=self.QUEUE_ERROR_CODE):
-            env_data = env_data if isinstance(env_data, dict) else {}
-            queuenumber = env_data.get("queuenumber")
-            messageid = env_data.get("messageid")
-            error_code_str = error_codes[0].strip().upper()
+            queuenumber = self.request_context.get("queuenumber")
+            messageid = self.request_context.get("messageid")
+            error_code_str = error_codes[0].text.strip().upper()
             error_code_desc = self.ERRORS_PNR_LIST_IN_QUEUE.get(error_code_str).strip().upper()
 
             logger.error(
@@ -160,11 +162,10 @@ class AmadeusAPI(
             return {error_code_str: error_code_desc}
         return None
 
-    def _log_pnr_delete(self, xml_root: lxml.etree.ElementTree, env_data: dict | None = None) -> dict[str, str] | None:
+    def _log_pnr_delete(self, xml_root: lxml.etree.ElementTree) -> dict[str, str] | None:
         if error_codes := self.get_all_xml_elements(xml_root=xml_root, selector=self.PNR_DELETE_ERROR_CODE):
-            env_data = env_data if isinstance(env_data, dict) else {}
-            queuenumber = env_data.get("queuenumber")
-            messageid = env_data.get("messageid")
+            queuenumber = self.request_context.get("queuenumber")
+            messageid = self.request_context.get("messageid")
             error_code_str = error_codes[0].strip().upper()
             error_code_desc = self.ERRORS_DELETE_PNR_FROM_QUEUE.get(error_code_str).strip().upper()
 
@@ -179,21 +180,18 @@ class AmadeusAPI(
             return {error_code_str: error_code_desc}
         return None
 
-    def _log_get_pnr_error(
-        self, xml_root: lxml.etree.ElementTree, env_data: dict | None = None
-    ) -> dict[str, str] | None:
+    def _log_get_pnr_error(self, xml_root: lxml.etree.ElementTree) -> dict[str, str] | None:
         if error_codes := self.get_all_xml_elements(xml_root=xml_root, selector=self.PNR_GET_ERROR_CODE):
-            env_data = env_data if isinstance(env_data, dict) else {}
             error_code_str = error_codes[0].strip().upper()
             error_code_desc = self.ERRORS_PNR_RETRIEVE.get(error_code_str).strip().upper()
 
             logger.error(
                 "*ERROR* GET PNR *`%s`* FROM QUEUE *`%s`* error code: *`%s`* - *`%s`*. RequestID: *`%s`*",
-                env_data.get("controlnumber"),
-                env_data.get("queuenumber"),
+                self.request_context.get("controlnumber"),
+                self.request_context.get("queuenumber"),
                 error_code_str,
                 error_code_desc,
-                env_data.get("messageid"),
+                self.request_context.get("messageid"),
                 extra={"notify_slack": self.notify_slack},
             )
             return {error_code_str: error_code_desc}
@@ -203,10 +201,11 @@ class AmadeusAPI(
         template_error: bool
         request_body: str | None = None
         action_code: str
-        if action_code := parameters.get(action_code):
+        if action_code := parameters.get("action_code"):
             placeholders_data: dict = (
                 self._base_placeholders() | parameters | {"action": f"http://webservices.amadeus.com/{action_code}"}
             )
+            self.request_context.update(placeholders_data)
             template_error, request_body = self.fill_out_template(
                 template_name=action_code, template_values=placeholders_data
             )
@@ -276,37 +275,30 @@ class AmadeusAPI(
             return None
         return self._send_post_request(action_code=action_code, request_body=request_body)
 
-    def status_inform(
-        self, xml_root: lxml.etree.ElementTree, action: InfoStatAction, env_data: dict | None = None
-    ) -> dict | None:
+    def status_inform(self, xml_root: lxml.etree.ElementTree, action: InfoStatAction) -> dict | None:
         result: dict | None = None
         match action:
             case InfoStatAction.QUEUE_INFO:
-                result = self._log_queue_info(xml_root, env_data=env_data)
+                result = self._log_queue_info(xml_root)
             case InfoStatAction.QUEUE_ALERT:
-                result = self._log_queue_alert(xml_root, env_data=env_data)
+                result = self._log_queue_alert(xml_root)
             case InfoStatAction.QUEUE_ERROR:
-                result = self._log_queue_error(xml_root, env_data=env_data)
+                result = self._log_queue_error(xml_root)
             case InfoStatAction.GET_PNR_ERROR:
-                result = self._log_get_pnr_error(xml_root, env_data=env_data)
+                result = self._log_get_pnr_error(xml_root)
             case InfoStatAction.DELETE_PNR_ERROR:
-                result = self._log_pnr_delete(xml_root, env_data=env_data)
+                result = self._log_pnr_delete(xml_root)
         return result
 
     def get_pnr_list(self, queuenumber: int) -> list[str] | None:
         response_text: str | None
         record_locators: list[Any] | None
+        self.request_context = {"queuenumber": queuenumber}
         if response_text := self._get_queue_info(queuenumber=queuenumber):
             xml_root = self.str_to_xml(response_text)
-            if not self.status_inform(
-                xml_root=xml_root, action=InfoStatAction.QUEUE_ERROR, env_data={"queuenumber": queuenumber}
-            ):
-                self.status_inform(
-                    xml_root=xml_root, action=InfoStatAction.QUEUE_INFO, env_data={"queuenumber": queuenumber}
-                )
-                self.status_inform(
-                    xml_root=xml_root, action=InfoStatAction.QUEUE_ALERT, env_data={"queuenumber": queuenumber}
-                )
+            if xml_root is not None and (not self.status_inform(xml_root=xml_root, action=InfoStatAction.QUEUE_ERROR)):
+                self.status_inform(xml_root=xml_root, action=InfoStatAction.QUEUE_INFO)
+                self.status_inform(xml_root=xml_root, action=InfoStatAction.QUEUE_ALERT)
 
                 record_locators = self.get_all_xml_elements(
                     xml_root=self.str_to_xml(response_text), selector=self.QUEUE_CONTROL_NUMBERS
@@ -318,11 +310,8 @@ class AmadeusAPI(
         response_text: str | None
         if response_text := self._get_pnr_info(controlnumber=controlnumber):
             xml_root = self.str_to_xml(response_text)
-            if not self.status_inform(
-                xml_root=xml_root,
-                action=InfoStatAction.GET_PNR_ERROR,
-                env_data={"controlnumber": controlnumber, "queuenumber": queuenumber},
-            ):
+            self.request_context = {"controlnumber": controlnumber, "queuenumber": queuenumber}
+            if xml_root is not None and not self.status_inform(xml_root=xml_root, action=InfoStatAction.GET_PNR_ERROR):
                 saved_pnr_file = self.save_session_file(
                     root_dir=self.workdir / "current_pnr",
                     file_name=f"{self.get_ulid_as_str()}_{controlnumber}.xml".lower(),
@@ -337,11 +326,12 @@ class AmadeusAPI(
         response_text: str | None
         if response_text := self._delete_pnr_from_queue(queuenumber=queuenumber, controlnumber=controlnumber):
             xml_root = self.str_to_xml(response_text)
-            _ = self.status_inform(
-                xml_root=xml_root,
-                action=InfoStatAction.DELETE_PNR_ERROR,
-                env_data={"controlnumber": controlnumber, "queuenumber": queuenumber},
-            )
+            if xml_root is not None:
+                self.request_context = {"controlnumber": controlnumber, "queuenumber": queuenumber}
+                _ = self.status_inform(
+                    xml_root=xml_root,
+                    action=InfoStatAction.DELETE_PNR_ERROR,
+                )
         return None
 
     def launch_work_cycle(self, queue_ids: list[int]) -> tuple[int, int]:

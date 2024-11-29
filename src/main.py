@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from gds.amadeus.amadeus_api import AmadeusAPI
@@ -17,9 +17,10 @@ init_logger()
 
 
 def main() -> None:
-    now = datetime.now()
-    last_run_file: Path = settings.WORKDIR / "last_run.datetime"
-    last_checked_day = read_last_checked_day(filename=last_run_file)
+    now = datetime.now(tz=timezone.utc)
+    last_run_file: Path = Path(settings.WORKDIR) / "last_run.datetime"
+    last_checked_day = read_last_checked_day(file=last_run_file)
+    last_checked_day = last_checked_day if last_checked_day else now
     if days_difference(date1=now, date2=last_checked_day):
         archive_filename = settings.WORKDIR / f"archive/{last_checked_day.strftime(datetime_format)}.tar.gz"
         tmp_folder = settings.WORKDIR / "tmp"
@@ -41,7 +42,7 @@ def main() -> None:
         queue_alert_total_accessible_ratio=settings.QUEUE_ALERT_TOTAL_RATIO,
     )
     amadeus.launch_work_cycle(queue_ids=settings.QUEUE_IDS)
-    write_last_checked_day(filename=files_to_add, day=now)
+    write_last_checked_day(file=last_run_file, day=now)
 
 
 if __name__ == "__main__":

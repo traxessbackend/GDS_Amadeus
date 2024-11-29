@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from enum import StrEnum
 from pathlib import Path
 
 import requests
@@ -49,7 +50,8 @@ class BaseAPI:
         response_text: str | None
 
         try:
-            r = requests.post(url, headers=headers, data=data, verify=False)
+            # , verify=False
+            r = requests.post(url, headers=headers, data=data)
             status_code = r.status_code
             if status_code == 200:
                 response_text = r.text

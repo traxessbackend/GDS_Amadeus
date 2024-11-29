@@ -5,11 +5,11 @@ datetime_format: str = "%Y-%m-%d %H:%M:%S"
 
 
 # Function to read the last checked day from a file
-def read_last_checked_day(filename: Path) -> datetime | None:
+def read_last_checked_day(file: Path) -> datetime | None:
     checked_day: datetime | None = None
-    if filename.exists():
+    if file.exists():
         try:
-            checked_day = datetime.strptime(filename.read_text().strip(), datetime_format)
+            checked_day = datetime.strptime(file.read_text().strip(), datetime_format)
         except:
             pass
     return checked_day

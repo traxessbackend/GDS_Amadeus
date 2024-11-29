@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from decimal import Decimal
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
@@ -8,6 +9,7 @@ import lxml
 
 from gds import BaseAPI, Env, RequestResult, SOAPMixin, XMLMixin
 from helpers.files_helper import copy_file
+from settings import settings
 
 from .amadeus_mixin import AmadeusErrorsMixin, AmadeusTemplatesMixin, AmadeusXMLItemsMixin
 
@@ -51,8 +53,8 @@ class AmadeusAPI(
         workdir: Path,
         notify_slack: bool = False,
         env: Env = Env.development,
-        queue_alert_total_accessible_ratio: float = 2.0,
-        queue_alert_level_accessible: int = 100,
+        queue_alert_total_accessible_ratio: int = 100,
+        queue_alert_level_accessible: Decimal = Decimal(2.0),
     ):
         self.username = username
         self.password = password
@@ -60,9 +62,9 @@ class AmadeusAPI(
         self.pseudocitycode = pseudocitycode
         self.env = env
         self.notify_slack = notify_slack
-        self.workdir = workdir
+        self.workdir = Path(workdir)
         self.queue_alert_total_accessible_ratio = queue_alert_total_accessible_ratio
-        self.queue_alert_level_accessible: int = queue_alert_level_accessible
+        self.queue_alert_level_accessible = queue_alert_level_accessible
 
         self.request_context = {}
 
@@ -123,7 +125,7 @@ class AmadeusAPI(
             messageid = self.request_context.get("messageid")
             total = number_of_units[0].text
             accessible = number_of_units[1].text
-            if float(total) / float(accessible) >= self.queue_alert_total_accessible_ratio:
+            if int(total) / int(accessible) >= self.queue_alert_total_accessible_ratio:
                 logger.warning(
                     "*WARNING*  Queue *`%s`* Total: *`%s`*, Accessible: *`%s`* Exceeded ratio *`%s`*.  MessageID: *`%s`*",
                     queuenumber,
@@ -133,7 +135,7 @@ class AmadeusAPI(
                     messageid,
                     extra={"notify_slack": self.notify_slack},
                 )
-            if float(accessible) >= float(self.queue_alert_level_accessible):
+            if int(accessible) >= self.queue_alert_level_accessible:
                 logger.warning(
                     "*WARNING*  Queue *`%s`*  Accessible: *`%s`* > *`%s`*.  MessageID: *`%s`*",
                     queuenumber,
@@ -150,15 +152,15 @@ class AmadeusAPI(
             messageid = self.request_context.get("messageid")
             error_code_str = error_codes[0].text.strip().upper()
             error_code_desc = self.ERRORS_PNR_LIST_IN_QUEUE.get(error_code_str).strip().upper()
-
-            logger.error(
-                "*ERROR* Queue *`%s`* error code: *`%s`* - *`%s`*. MessageID: *`%s`*",
-                queuenumber,
-                error_code_str,
-                error_code_desc,
-                messageid,
-                extra={"notify_slack": self.notify_slack},
-            )
+            if error_code_str:
+                logger.error(
+                    "*ERROR* Queue *`%s`* error code: *`%s`* - *`%s`*. MessageID: *`%s`*",
+                    queuenumber,
+                    error_code_str,
+                    error_code_desc,
+                    messageid,
+                    extra={"notify_slack": self.notify_slack},
+                )
             return {error_code_str: error_code_desc}
         return None
 
@@ -216,7 +218,7 @@ class AmadeusAPI(
         return request_body
 
     def _send_post_request(self, action_code: str, request_body: str) -> str | None:
-        if logger.getEffectiveLevel() == "DEBUG":
+        if logging.getLogger().getEffectiveLevel() == logging.DEBUG:
             _saved_file = self.save_session_file(
                 root_dir=self.workdir / "session",
                 file_name=f"{self.get_ulid_as_str()}_{action_code}_req.xml".lower(),
@@ -238,7 +240,7 @@ class AmadeusAPI(
                 AmadeusAPI.API_URLS[self.env],
             )
             return None
-        if logger.getEffectiveLevel() == "DEBUG":
+        if logging.getLogger().getEffectiveLevel() == logging.DEBUG:
             _saved_file = self.save_session_file(
                 root_dir=self.workdir / "session",
                 file_name=f"{self.get_ulid_as_str()}_{action_code}_resp.xml".lower(),
@@ -324,14 +326,17 @@ class AmadeusAPI(
 
     def delete_pnr(self, controlnumber: str, queuenumber: int) -> str | None:
         response_text: str | None
-        if response_text := self._delete_pnr_from_queue(queuenumber=queuenumber, controlnumber=controlnumber):
-            xml_root = self.str_to_xml(response_text)
-            if xml_root is not None:
-                self.request_context = {"controlnumber": controlnumber, "queuenumber": queuenumber}
-                _ = self.status_inform(
-                    xml_root=xml_root,
-                    action=InfoStatAction.DELETE_PNR_ERROR,
-                )
+        if settings.ENABLE_DELETE_PNR_FROM_QUEUE:
+            if response_text := self._delete_pnr_from_queue(queuenumber=queuenumber, controlnumber=controlnumber):
+                xml_root = self.str_to_xml(response_text)
+                if xml_root is not None:
+                    self.request_context = {"controlnumber": controlnumber, "queuenumber": queuenumber}
+                    _ = self.status_inform(
+                        xml_root=xml_root,
+                        action=InfoStatAction.DELETE_PNR_ERROR,
+                    )
+        else:
+            logger.warning("Removing PNRs from the queue is disabled in the configuration")
         return None
 
     def launch_work_cycle(self, queue_ids: list[int]) -> tuple[int, int]:

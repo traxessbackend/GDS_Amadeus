@@ -50,7 +50,7 @@ def copy_file(source_path: Path, destination_path: Path) -> str | None:
     return destination_path
 
 
-def get_ulid_files_list_from_folders(sources: list[Path]) -> dict[date, list[Path]]:
+def get_ulid_files_list_from_folders(sources: list[Path]) -> list[tuple[Path, date]]:
     # Regex pattern to match ULID, underscore, and date pattern in file names
     pattern = re.compile(r"^([0-9A-Za-z]+)_.*")
 

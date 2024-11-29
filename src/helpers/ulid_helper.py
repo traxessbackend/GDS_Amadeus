@@ -17,4 +17,8 @@ def date_from_ulid(ulid_obj: str | ULID) -> date | None:
 
 
 def ulid_as_str() -> str:
+    return str(ULID())
+
+
+def uuid_as_str() -> str:
     return str(ULID().to_uuid4())

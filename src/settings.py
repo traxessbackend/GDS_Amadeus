@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     QUEUE_ALERT_LEVEL_ACCESIBLE: Decimal = Decimal(2.0)
 
     QUEUE_IDS: list[int]
+    ENABLE_DELETE_PNR_FROM_QUEUE: bool = False
 
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
         env_file=_get_env_file(),

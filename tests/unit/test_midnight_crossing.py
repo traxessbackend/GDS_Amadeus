@@ -1,15 +1,15 @@
 import tempfile
 import unittest
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
-from helpers.midnight_crossing_helper import read_last_checked_day, write_last_checked_day
+from helpers.midnight_crossing_helper import datetime_format, read_last_checked_day, write_last_checked_day
 
 
 class TestDateTimeFunctions(unittest.TestCase):
     def setUp(self):
         # Create a temporary file for testing
-        self.temp_file = Path(tempfile.NamedTemporaryFile(delete=False).name)
+        self.temp_file = Path(tempfile.NamedTemporaryFile(delete=False, delete_on_close=False).name)
 
     def tearDown(self):
         # Clean up temporary file
@@ -17,16 +17,17 @@ class TestDateTimeFunctions(unittest.TestCase):
             self.temp_file.unlink()
 
     def test_write_last_checked_day_success(self):
-        day = datetime(2024, 11, 28, 15, 30, 0)
+        day = datetime(2024, 11, 28, 15, 30, 0, tzinfo=timezone.utc)
         result = write_last_checked_day(self.temp_file, day)
         self.assertTrue(result)
-        self.assertEqual(self.temp_file.read_text().strip(), day.strftime("%Y-%m-%d %H:%M:%S"))
+        self.assertEqual(self.temp_file.read_text().strip(), day.strftime(datetime_format))
 
     def test_read_last_checked_day_success(self):
-        day = datetime(2024, 11, 28, 15, 30, 0)
-        self.temp_file.write_text(day.strftime("%Y-%m-%d %H:%M:%S"))
-        result = read_last_checked_day(self.temp_file)
-        self.assertEqual(result, day)
+        day = datetime(2024, 11, 28, 15, 30, 0, tzinfo=timezone.utc)
+        result_wr = write_last_checked_day(self.temp_file, day)
+        result_rd = read_last_checked_day(self.temp_file)
+        self.assertTrue(result_wr)
+        self.assertEqual(result_rd, day)
 
     def test_read_last_checked_day_file_not_exist(self):
         non_existent_file = Path("non_existent_file.txt")
@@ -40,10 +41,6 @@ class TestDateTimeFunctions(unittest.TestCase):
 
     def test_write_last_checked_day_failure(self):
         invalid_path = Path("/boot/file.txt")
-        day = datetime(2024, 11, 28, 15, 30, 0)
+        day = datetime(2024, 11, 28, 15, 30, 0, tzinfo=timezone.utc)
         result = write_last_checked_day(invalid_path, day)
         self.assertFalse(result)
-
-
-if __name__ == "__main__":
-    unittest.main()

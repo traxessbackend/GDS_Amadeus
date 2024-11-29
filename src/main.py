@@ -22,11 +22,14 @@ def main() -> None:
     last_checked_day = read_last_checked_day(file=last_run_file)
     last_checked_day = last_checked_day if last_checked_day else now
     if days_difference(date1=now, date2=last_checked_day):
-        archive_filename = settings.WORKDIR / f"archive/{last_checked_day.strftime(datetime_format)}.tar.gz"
-        tmp_folder = settings.WORKDIR / "tmp"
+        archive_filename = Path(settings.WORKDIR) / f"archive/{last_checked_day.strftime(datetime_format)}.tar.gz"
+        tmp_folder = Path(settings.WORKDIR) / "tmp"
 
         files_to_add = get_ulid_files_list_from_folders(
-            sources=[settings.WORKDIR / "session", settings.WORKDIR / "current_pnr", settings]
+            sources=[
+                Path(settings.WORKDIR) / "session",
+                Path(settings.WORKDIR) / "current_pnr",
+            ]
         )
         add_files_to_tar_gz(
             archive_path=archive_filename, tmp_folder=tmp_folder, files_to_add=[rec[0] for rec in files_to_add]
@@ -36,11 +39,12 @@ def main() -> None:
         password=settings.PASSWORD,
         officeid=settings.OFFICEID,
         pseudocitycode=settings.PSEUDOCITYCODE,
-        workdir=settings.WORKDIR,
+        workdir=Path(settings.WORKDIR),
         notify_slack=bool(settings.SLACK_WEBHOOK_URL),
         queue_alert_level_accessible=settings.QUEUE_ALERT_LEVEL_ACCESIBLE,
         queue_alert_total_accessible_ratio=settings.QUEUE_ALERT_TOTAL_RATIO,
     )
+
     amadeus.launch_work_cycle(queue_ids=settings.QUEUE_IDS)
     write_last_checked_day(file=last_run_file, day=now)
 

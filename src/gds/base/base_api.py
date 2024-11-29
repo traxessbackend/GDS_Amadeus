@@ -24,8 +24,8 @@ class BaseAPI:
         return datetime.now(tz=timezone.utc)
 
     @staticmethod
-    def utc_date_short() -> str:
-        return datetime.now(tz=timezone.utc).strftime("%Y%m%d%H%M%S")
+    def utc_date_str() -> str:
+        return datetime.now(tz=timezone.utc).strftime("%Y%m%d")
 
     @staticmethod
     def write2file(data: str, file_path: str) -> None:
@@ -35,8 +35,8 @@ class BaseAPI:
 
     @staticmethod
     def save_session_file(root_dir: Path, file_name: str, data: str) -> Path:
-        date = BaseAPI.utc_date_short()
-        path = Path(root_dir / date)
+        date_str = BaseAPI.utc_date_str()
+        path = root_dir / date_str
         path.mkdir(parents=True, exist_ok=True)
         fullpath = path / file_name.strip().lower()
         with open(fullpath, "w") as f:

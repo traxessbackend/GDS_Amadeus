@@ -9,7 +9,7 @@ from typing import Any
 
 from lxml.etree import XML, ElementTree, _Element, fromstring, tostring
 
-from helpers.ulid_helper import ulid_as_str
+from helpers.ulid_helper import ulid_as_str, uuid_as_str
 
 logger = logging.Logger(__name__)
 
@@ -18,6 +18,10 @@ class SOAPMixin:
     @staticmethod
     def get_random_string(length: int) -> str:
         return "".join([random.choice(string.ascii_letters + string.digits) for n in range(length)])
+
+    @staticmethod
+    def get_uuid_as_str() -> str:
+        return uuid_as_str()
 
     @staticmethod
     def get_ulid_as_str() -> str:
@@ -81,7 +85,7 @@ class XMLMixin:
 
     @staticmethod
     def pretty_xml(xml_str: str) -> str:
-        return tostring(XML(xml_str.encode("utf-8")), pretty_print=True)
+        return tostring(XML(xml_str), pretty_print=True).decode()
 
     @staticmethod
     def get_all_xml_elements(xml_root: ElementTree, selector: str) -> list[Any] | None:

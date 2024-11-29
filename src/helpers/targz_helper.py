@@ -17,7 +17,7 @@ def add_files_to_tar_gz(archive_path: Path, tmp_folder: Path, files_to_add: list
         try:
             # Extract the contents of the existing tar.gz archive
             with tarfile.open(archive_path, "r:gz") as tar:
-                tar.extractall(temp_dir)
+                tar.extractall(temp_dir, filter="fully_trusted")
             for source_path in files_to_add:
                 if copy_file(source_path, temp_dir):
                     counter_added += 1

@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from pathlib import Path
 
-datetime_format: str = "%Y-%m-%d %H:%M:%S"
+datetime_format: str = "%Y-%m-%d %H:%M:%S.%f%z"
 
 
 # Function to read the last checked day from a file
@@ -10,7 +10,7 @@ def read_last_checked_day(file: Path) -> datetime | None:
     if file.exists():
         try:
             checked_day = datetime.strptime(file.read_text().strip(), datetime_format)
-        except:
+        except Exception as exc:
             pass
     return checked_day
 
@@ -40,6 +40,5 @@ def days_difference(date1: datetime | date, date2: datetime | date):
     Returns:
         int: The difference in days between the two dates.
     """
-
     # Calculate the difference in days
-    return abs((date2 - date1).days)
+    return abs((date1 - date2).days)

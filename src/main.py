@@ -22,7 +22,7 @@ def main() -> None:
     last_checked_day = read_last_checked_day(file=last_run_file)
     last_checked_day = last_checked_day if last_checked_day else now
     if days_difference(date1=now, date2=last_checked_day):
-        archive_filename = Path(settings.WORKDIR) / f"archive/{last_checked_day.strftime(datetime_format)}.tar.gz"
+        archive_folder = Path(settings.WORKDIR) / "archive"
         tmp_folder = Path(settings.WORKDIR) / "tmp"
 
         files_to_add = get_ulid_files_list_from_folders(
@@ -31,9 +31,7 @@ def main() -> None:
                 Path(settings.WORKDIR) / "current_pnr",
             ]
         )
-        add_files_to_tar_gz(
-            archive_path=archive_filename, tmp_folder=tmp_folder, files_to_add=[rec[0] for rec in files_to_add]
-        )
+        add_files_to_tar_gz(archive_folder=archive_folder, tmp_folder=tmp_folder, files_to_add=files_to_add)
     amadeus = AmadeusAPI(
         username=settings.USER,
         password=settings.PASSWORD,

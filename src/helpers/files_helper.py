@@ -52,13 +52,16 @@ def copy_file(source_path: Path, destination_path: Path) -> str | None:
 
 def get_ulid_files_list_from_folders(sources: list[Path]) -> list[tuple[Path, date]]:
     # Regex pattern to match ULID, underscore, and date pattern in file names
-    pattern = re.compile(r"^([0-9A-Za-z]+)_.*")
+    pattern = r"^[0-9A-HJKMNP-TV-Z]{10}[0-9A-HJKMNP-TV-Z]{16}_.*"
 
     # Dictionary to group files by date
     files_with_date = []
-    for source in sources:
-        for file in source.iterdir():
-            if file.is_file() and pattern.match(file.name):
+    for source_dir in sources:
+        if not source_dir.exists():
+            continue
+        for file in source_dir.iterdir():
+            fn = file.name
+            if file.is_file() and re.match(pattern, file.name, re.IGNORECASE):
                 ulid_str = file.name.split("_", 1)[0]
                 try:
                     if not (date_obj := date_from_ulid(ulid_str)):
@@ -67,11 +70,10 @@ def get_ulid_files_list_from_folders(sources: list[Path]) -> list[tuple[Path, da
                     continue  # Skip files with invalid date formats
                 else:
                     # Add file to the corresponding date group
-                    date_key = date_obj.strftime("%Y%m%d")
                     files_with_date.append(
                         (
                             file,
-                            date_key,
+                            date_obj,
                         )
                     )
     return files_with_date

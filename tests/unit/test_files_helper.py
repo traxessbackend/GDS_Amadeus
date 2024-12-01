@@ -108,7 +108,7 @@ def test_get_ulid_files_list_from_folders():
         (folder2 / f"{str(ULID())}_1").touch()
         (folder2 / "random_file_123.txt").touch()
 
-        now = date.today().strftime("%Y%m%d")
+        now = date.today()
         result = get_ulid_files_list_from_folders([folder1, folder2])
 
         # Verify the output dictionary

@@ -34,10 +34,10 @@ class BaseAPI:
             f.write(data)
 
     @staticmethod
-    def save_session_file(root_dir: Path, file_name: str, data: str) -> Path:
-        date_str = BaseAPI.utc_date_str()
-        path = root_dir / date_str
-        path.mkdir(parents=True, exist_ok=True)
+    def save_session_file(folder: Path, file_name: str, data: str) -> Path:
+        # date_str = BaseAPI.utc_date_str()
+        # path = root_dir / date_str
+        # path.mkdir(parents=True, exist_ok=True)
         fullpath = path / file_name.strip().lower()
         with open(fullpath, "w") as f:
             f.write(data)

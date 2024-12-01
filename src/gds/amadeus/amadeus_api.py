@@ -220,7 +220,7 @@ class AmadeusAPI(
     def _send_post_request(self, action_code: str, request_body: str) -> str | None:
         if logging.getLogger().getEffectiveLevel() == logging.DEBUG:
             _saved_file = self.save_session_file(
-                root_dir=self.workdir / "session",
+                folder=self.workdir / "session",
                 file_name=f"{self.get_ulid_as_str()}_{action_code}_req.xml".lower(),
                 data=self.pretty_xml(request_body),
             )
@@ -242,7 +242,7 @@ class AmadeusAPI(
             return None
         if logging.getLogger().getEffectiveLevel() == logging.DEBUG:
             _saved_file = self.save_session_file(
-                root_dir=self.workdir / "session",
+                folder=self.workdir / "session",
                 file_name=f"{self.get_ulid_as_str()}_{action_code}_resp.xml".lower(),
                 data=self.pretty_xml(request_body),
             )
@@ -315,7 +315,7 @@ class AmadeusAPI(
             self.request_context = {"controlnumber": controlnumber, "queuenumber": queuenumber}
             if xml_root is not None and not self.status_inform(xml_root=xml_root, action=InfoStatAction.GET_PNR_ERROR):
                 saved_pnr_file = self.save_session_file(
-                    root_dir=self.workdir / "current_pnr",
+                    folder=self.workdir / "current_pnr",
                     file_name=f"{self.get_ulid_as_str()}_{controlnumber}.xml".lower(),
                     data=self.pretty_xml(response_text),
                 )

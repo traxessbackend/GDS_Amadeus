@@ -35,10 +35,7 @@ class BaseAPI:
 
     @staticmethod
     def save_session_file(folder: Path, file_name: str, data: str) -> Path:
-        # date_str = BaseAPI.utc_date_str()
-        # path = root_dir / date_str
-        # path.mkdir(parents=True, exist_ok=True)
-        fullpath = path / file_name.strip().lower()
+        fullpath = folder / file_name.strip().lower()
         with open(fullpath, "w") as f:
             f.write(data)
         return fullpath
@@ -47,7 +44,7 @@ class BaseAPI:
     def post_request_text(url: str, data: bytes, headers: dict | None = None) -> RequestResult:
         request_err: str | None = None
         status_code: int | None = None
-        response_text: str | None
+        response_text: str | None = None
 
         try:
             # , verify=False

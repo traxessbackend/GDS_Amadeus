@@ -74,7 +74,9 @@ class AmadeusAPI(
         created_at_str = created_at.strftime("%Y-%m-%dT%H:%M:%SZ")
         return {
             "messageid": self.get_ulid_as_str(),
-            "to": self.API_URLS[self.env],
+            # "to": self.API_URLS[self.env],
+            # Amadeus bug - always `https://nodeD3.test.webservices.amadeus.com/1ASIWTRXRXE`
+            "to": "https://nodeD3.test.webservices.amadeus.com/1ASIWTRXRXE",
             "username": self.username,
             "nonce": self.get_nonce64(nonce),
             "password": self.get_digest(password=self.password, nonce=nonce, created_timestamp=created_at),

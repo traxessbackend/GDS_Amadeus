@@ -1,17 +1,13 @@
 from datetime import datetime, timezone
 from pathlib import Path
 
+from gds import Env
 from gds.amadeus.amadeus_api import AmadeusAPI
 from helpers.files_helper import get_ulid_files_list_from_folders
-from helpers.midnight_crossing_helper import (
-    datetime_format,
-    days_difference,
-    read_last_checked_day,
-    write_last_checked_day,
-)
+from helpers.midnight_crossing_helper import days_difference, read_last_checked_day, write_last_checked_day
 from helpers.targz_helper import add_files_to_tar_gz
 from logger import init_logger
-from settings import settings
+from settings import get_current_env, settings
 
 init_logger()
 
@@ -41,6 +37,7 @@ def main() -> None:
         notify_slack=bool(settings.SLACK_WEBHOOK_URL),
         queue_alert_level_accessible=settings.QUEUE_ALERT_LEVEL_ACCESIBLE,
         queue_alert_total_accessible_ratio=settings.QUEUE_ALERT_TOTAL_RATIO,
+        env=Env.production if get_current_env() == "production" else Env.development,
     )
 
     amadeus.launch_work_cycle(queue_ids=settings.QUEUE_IDS)

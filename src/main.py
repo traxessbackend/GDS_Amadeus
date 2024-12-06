@@ -21,13 +21,18 @@ def main() -> None:
         archive_folder = Path(settings.WORKDIR) / "archive"
         tmp_folder = Path(settings.WORKDIR) / "tmp"
 
-        files_to_add = get_ulid_files_list_from_folders(
+        if files_to_add := get_ulid_files_list_from_folders(
             sources=[
                 Path(settings.WORKDIR) / "session",
                 Path(settings.WORKDIR) / "current_pnr",
             ]
-        )
-        add_files_to_tar_gz(archive_folder=archive_folder, tmp_folder=tmp_folder, files_to_add=files_to_add)
+        ):
+            add_files_to_tar_gz(
+                archive_folder=archive_folder,
+                tmp_folder=tmp_folder,
+                files_to_add=files_to_add,
+                delete_archived_files=True,
+            )
     amadeus = AmadeusAPI(
         username=settings.USER,
         password=settings.PASSWORD,

@@ -60,7 +60,6 @@ def get_ulid_files_list_from_folders(sources: list[Path]) -> list[tuple[Path, da
         if not source_dir.exists():
             continue
         for file in source_dir.iterdir():
-            fn = file.name
             if file.is_file() and re.match(pattern, file.name, re.IGNORECASE):
                 ulid_str = file.name.split("_", 1)[0]
                 try:

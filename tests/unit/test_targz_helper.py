@@ -73,9 +73,9 @@ class TestAddFilesToTarGz(unittest.TestCase):
         # Verify the new file is in the archive
         with tarfile.open(created_archive, "r:gz") as tar:
             tar_members = [
-                file.replace(f"./{arch_date_str}", "").split("_")[1]
-                for file in tar.getnames()
-                if file.replace(f"./{arch_date_str}", "")
+                file.name.replace(f"./{arch_date_str}", "").split("_")[1]
+                for file in tar.getmembers()
+                if file.isfile() and file.name.replace(f"./{arch_date_str}", "")
             ]
             self.assertIn(add_file[0].stem.split("_")[1], tar_members)
 

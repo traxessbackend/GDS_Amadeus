@@ -7,10 +7,7 @@ from sqlalchemy.orm import Session
 
 from db.crud.base_crud import BaseCrud
 from db.models.gds_reports import GDSReports
-from db.schemas.gds_reports_schema import (
-    GDSReportSchemaCreate,
-    GDSReportSchemaUpdate
-)
+from db.schemas.gds_reports_schema import GDSReportSchemaCreate, GDSReportSchemaUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +37,9 @@ class GDSReportCrud(BaseCrud[GDSReports, GDSReportSchemaCreate, GDSReportSchemaU
         except Exception as e:
             return {"error": str(e)}
 
-    def update(self, *, db_obj: GDSReports, obj_in: GDSReportSchemaUpdate | dict[str, Any]) -> GDSReports | dict[str, str]:
+    def update(
+        self, *, db_obj: GDSReports, obj_in: GDSReportSchemaUpdate | dict[str, Any]
+    ) -> GDSReports | dict[str, str]:
         try:
             if isinstance(obj_in, dict):
                 update_data = obj_in
@@ -66,9 +65,7 @@ class GDSReportCrud(BaseCrud[GDSReports, GDSReportSchemaCreate, GDSReportSchemaU
         try:
             with self.db.begin_nested() as nested:
                 deleted_row = self.db.execute(
-                    delete(GDSReports)
-                    .returning(GDSReports)
-                    .where(GDSReports.id == id_)
+                    delete(GDSReports).returning(GDSReports).where(GDSReports.id == id_)
                 ).scalar()
                 if deleted_row is not None:
                     delete_result = deleted_row

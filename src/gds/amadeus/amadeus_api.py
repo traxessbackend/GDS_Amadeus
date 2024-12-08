@@ -1,12 +1,17 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
 import lxml
+from sqlalchemy.orm import Session
 
+from db.config import get_session
+from db.crud.gds_report_crud import GDSReportCrud
+from db.enums import GDS
+from db.schemas.gds_reports_schema import GDSReportSchemaCreate
 from gds import BaseAPI, Env, RequestResult, SOAPMixin, XMLMixin
 from helpers.files_helper import copy_file
 from settings import settings
@@ -310,20 +315,22 @@ class AmadeusAPI(
                 return [pnr.text for pnr in record_locators]
         return None
 
-    def get_pnr(self, controlnumber: str, queuenumber: int) -> str | None:
+    def get_pnr(self, controlnumber: str, queuenumber: int) -> tuple[str, str, str] | None:
+        pnr_ulid: str | None = None
         response_text: str | None
         if response_text := self._get_pnr_info(controlnumber=controlnumber):
             xml_root = self.str_to_xml(response_text)
             self.request_context = {"controlnumber": controlnumber, "queuenumber": queuenumber}
             if xml_root is not None and not self.status_inform(xml_root=xml_root, action=InfoStatAction.GET_PNR_ERROR):
+                pnr_ulid = self.get_ulid_as_str()
                 saved_pnr_file = self.save_session_file(
                     folder=self.workdir / "current_pnr",
-                    file_name=f"{self.get_ulid_as_str()}_{controlnumber}.xml".lower(),
+                    file_name=f"{pnr_ulid}_{controlnumber}.xml".lower(),
                     data=self.pretty_xml(response_text),
                 )
                 destination_path = self.workdir / f"out/{saved_pnr_file.name}"
                 copy_file(saved_pnr_file, destination_path)
-                return str(saved_pnr_file)
+                return controlnumber, pnr_ulid, str(saved_pnr_file)
         return None
 
     def delete_pnr(self, controlnumber: str, queuenumber: int) -> str | None:
@@ -343,7 +350,6 @@ class AmadeusAPI(
 
     def launch_work_cycle(self, queue_ids: list[int]) -> tuple[int, int]:
         pnr_ids: list[str] | None
-        saved_pnr_file: str | None
         successfully_processed: int = 0
         processed_with_errors: int = 0
         for queuenumber in queue_ids:
@@ -354,11 +360,24 @@ class AmadeusAPI(
                     datetime.now(),
                     extra={"notify_slack": self.notify_slack},
                 )
-                if pnr_ids := self.get_pnr_list(queuenumber=queuenumber):
-                    for controlnumber in pnr_ids:
-                        if saved_pnr_file := self.get_pnr(controlnumber=controlnumber):
-                            self.delete_pnr(controlnumber=controlnumber, queuenumber=queuenumber)
-
+                with get_session() as session:
+                    if pnr_ids := self.get_pnr_list(queuenumber=queuenumber):
+                        for controlnumber in pnr_ids:
+                            if (
+                                pnr_data := self.get_pnr(
+                                    queuenumber=queuenumber,
+                                    controlnumber=controlnumber,
+                                )
+                            ) and (
+                                self.add_record_to_db(
+                                    session=session,
+                                    control_number=pnr_data[0],
+                                    pnr_ulid=pnr_data[1],
+                                    pnr_file=pnr_data[3],
+                                    received_at=datetime.now(tz=timezone.utc),
+                                )
+                            ):
+                                self.delete_pnr(controlnumber=controlnumber, queuenumber=queuenumber)
             except Exception as exc:
                 processed_with_errors += 1
                 logger.error(
@@ -378,3 +397,22 @@ class AmadeusAPI(
                 )
 
         return successfully_processed, processed_with_errors
+
+    def add_record_to_db(
+        self, session, control_number: str, pnr_ulid: str, pnr_file: str, received_at: datetime
+    ) -> bool:
+        result = False
+        try:
+            gds_crud = GDSReportCrud(session)
+            pnr_rec = GDSReportSchemaCreate(
+                pnr_id=pnr_ulid,
+                pnr_file=pnr_file,
+                pnr=control_number,
+                gds=GDS.AMADEUS,
+                received_at=received_at,
+            )
+            gds_crud.create(obj_in=pnr_rec)
+            result = True
+        except Exception as exc:
+            logger.error("Error adding a record to a table - `%s`", exc)
+        return result

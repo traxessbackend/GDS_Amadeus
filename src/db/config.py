@@ -1,8 +1,9 @@
 import logging
+from contextlib import contextmanager
 from typing import Iterator
 
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import create_engine
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
 from settings import settings
@@ -13,8 +14,14 @@ engine = create_engine(settings.DATABASE_URL, echo=settings.ECHO_SQL, pool_size=
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 
 
-def get_session() -> Iterator[sessionmaker]:
+@contextmanager
+def get_session():
+    session = SessionLocal()
     try:
-        yield SessionLocal
-    except SQLAlchemyError as e:
-        logger.exception(e)
+        yield session
+        session.commit()  # Commit the transaction if no exception occurs
+    except Exception as e:
+        session.rollback()  # Roll back on exception
+        raise  # Re-raise the exception
+    finally:
+        session.close()  # Ensure the session is closed

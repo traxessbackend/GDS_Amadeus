@@ -203,14 +203,14 @@ class AmadeusTemplatesMixin:
                             </oas:UsernameToken>
                        </oas:Security>
                        <AMA_SecurityHostedUser xmlns="http://xml.amadeus.com/2010/06/Security_v1">
-                            <UserID AgentDutyCode="{agentdutycode}" RequestorType="{requestortype}" PseudoCityCode="{}" POS_Type="{pos_type}"/>
+                            <UserID AgentDutyCode="{agentdutycode}" RequestorType="{requestortype}" PseudoCityCode="{pseudocitycode}" POS_Type="{pos_type}"/>
                        </AMA_SecurityHostedUser>
                     </soapenv:Header>
                     <soapenv:Body>
                        <PNR_Retrieve xmlns="http://xml.amadeus.com/PNRRET_17_1_1A">
                            <retrievalFacts>
                                <retrieve>
-                                   <type>{type}</type>
+                                   <type>2</type>
                                </retrieve>
                                <reservationOrProfileIdentifier>
                                    <reservation>

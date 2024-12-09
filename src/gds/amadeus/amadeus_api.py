@@ -267,10 +267,13 @@ class AmadeusAPI(
     def _get_pnr_info(self, controlnumber: str) -> str | None:
         action_code = "PNRRET_17_1_1A"
         request_body: str | None
-        if not (request_body := self._prepare_request_body(action_code=action_code, controlnumber=controlnumber)):
-            logger.error("Request creation error for action `%s`", action_code)
-            return None
-        return self._send_post_request(action_code=action_code, request_body=request_body)
+        try:
+            if not (request_body := self._prepare_request_body(action_code=action_code, controlnumber=controlnumber)):
+                logger.error("Request creation error for action `%s`", action_code)
+                return None
+            return self._send_post_request(action_code=action_code, request_body=request_body)
+        except Exception as exc:
+            print(exc)
 
     def _delete_pnr_from_queue(self, queuenumber: int, controlnumber: str) -> str | None:
         action_code = "QUQMDQ_03_1_1A"

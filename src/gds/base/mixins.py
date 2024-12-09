@@ -46,29 +46,20 @@ class SOAPMixin:
     def get_nonce64(nonce: str) -> str:
         return base64.b64encode(nonce.encode("utf-8")).decode("utf-8")
 
-    @staticmethod
-    def all_placeholders_filled(filled_template: str) -> bool:
-        if re.search(r"{[^{}]*}", filled_template):
-            return False  # Unfilled placeholders found
-        return True  # All placeholders are filled
-
     @classmethod
     def get_template_by_name(cls, template_name: str) -> str | None:
         return getattr(cls, template_name, None)
 
     @classmethod
-    def fill_out_template(
-        cls, template_name: str, template_values: dict, strict_mode: bool = True
-    ) -> tuple[bool, str | None]:
+    def fill_out_template(cls, template_name: str, template_values: dict) -> tuple[bool, str | None]:
         error: bool = True
         result_template: str | None = None
         try:
             if template := cls.get_template_by_name(template_name):
                 result_template = template.format(**template_values)
-                if strict_mode and cls.all_placeholders_filled(result_template):
-                    error = False
-        except KeyError:
-            logger.error("Key Error `%s` in template `%s`. Values: `%s`", template_name, template_values)
+                error = False
+        except (KeyError, IndexError) as exc:
+            logger.error("Key/Index Error `%s` in template `%s`. Values: `%s`", template_name, template_values)
         return error, result_template
 
 

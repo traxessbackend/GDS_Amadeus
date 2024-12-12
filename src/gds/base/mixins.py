@@ -76,7 +76,7 @@ class XMLMixin:
 
     @staticmethod
     def pretty_xml(xml_str: str) -> str:
-        return tostring(XML(xml_str), pretty_print=True).decode()
+        return tostring(XML(xml_str.encode()), pretty_print=True).decode()
 
     @staticmethod
     def get_all_xml_elements(xml_root: ElementTree, selector: str) -> list[Any] | None:

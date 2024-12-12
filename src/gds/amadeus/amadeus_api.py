@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any
 
 import lxml
-from sqlalchemy.orm import Session
 
 from db.config import get_session
 from db.crud.gds_report_crud import GDSReportCrud
@@ -273,7 +272,8 @@ class AmadeusAPI(
                 return None
             return self._send_post_request(action_code=action_code, request_body=request_body)
         except Exception as exc:
-            print(exc)
+            logger.error("Get PNR error `%s`", exc)
+        return None
 
     def _delete_pnr_from_queue(self, queuenumber: int, controlnumber: str) -> str | None:
         action_code = "QUQMDQ_03_1_1A"
@@ -318,7 +318,7 @@ class AmadeusAPI(
                 return [pnr.text for pnr in record_locators]
         return None
 
-    def get_pnr(self, controlnumber: str, queuenumber: int) -> tuple[str, str, str] | None:
+    def get_pnr(self, controlnumber: str, queuenumber: int) -> tuple[str, str, Path] | None:
         pnr_ulid: str | None = None
         response_text: str | None
         if response_text := self._get_pnr_info(controlnumber=controlnumber):
@@ -333,7 +333,7 @@ class AmadeusAPI(
                 )
                 destination_path = self.workdir / f"out/{saved_pnr_file.name}"
                 copy_file(saved_pnr_file, destination_path)
-                return controlnumber, pnr_ulid, str(saved_pnr_file)
+                return controlnumber, pnr_ulid, saved_pnr_file
         return None
 
     def delete_pnr(self, controlnumber: str, queuenumber: int) -> str | None:
@@ -363,8 +363,9 @@ class AmadeusAPI(
                     datetime.now(),
                     extra={"notify_slack": self.notify_slack},
                 )
-                with get_session() as session:
-                    if pnr_ids := self.get_pnr_list(queuenumber=queuenumber):
+
+                if pnr_ids := self.get_pnr_list(queuenumber=queuenumber):
+                    with get_session() as session:
                         for controlnumber in pnr_ids:
                             if (
                                 pnr_data := self.get_pnr(
@@ -376,8 +377,9 @@ class AmadeusAPI(
                                     session=session,
                                     control_number=pnr_data[0],
                                     pnr_ulid=pnr_data[1],
-                                    pnr_file=pnr_data[3],
+                                    pnr_file=pnr_data[2].name,
                                     received_at=datetime.now(tz=timezone.utc),
+                                    extra_info={"queue_number": queuenumber},
                                 )
                             ):
                                 self.delete_pnr(controlnumber=controlnumber, queuenumber=queuenumber)
@@ -402,7 +404,13 @@ class AmadeusAPI(
         return successfully_processed, processed_with_errors
 
     def add_record_to_db(
-        self, session, control_number: str, pnr_ulid: str, pnr_file: str, received_at: datetime
+        self,
+        session,
+        control_number: str,
+        pnr_ulid: str,
+        pnr_file: str,
+        received_at: datetime,
+        extra_info: dict,
     ) -> bool:
         result = False
         try:
@@ -413,6 +421,7 @@ class AmadeusAPI(
                 pnr=control_number,
                 gds=GDS.AMADEUS,
                 received_at=received_at,
+                extra_info=extra_info,
             )
             gds_crud.create(obj_in=pnr_rec)
             result = True

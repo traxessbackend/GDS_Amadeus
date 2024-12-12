@@ -14,6 +14,10 @@ init_logger()
 
 def main() -> None:
     now = datetime.now(tz=timezone.utc)
+    session_path = Path(settings.WORKDIR) / "session"
+    current_pnr_path = Path(settings.WORKDIR) / "current_pnr"
+    session_path.mkdir(parents=True, exist_ok=True)
+    current_pnr_path.mkdir(parents=True, exist_ok=True)
     last_run_file: Path = Path(settings.WORKDIR) / "last_run.datetime"
     last_checked_day = read_last_checked_day(file=last_run_file)
     last_checked_day = last_checked_day if last_checked_day else now
@@ -23,8 +27,8 @@ def main() -> None:
 
         if files_to_add := get_ulid_files_list_from_folders(
             sources=[
-                Path(settings.WORKDIR) / "session",
-                Path(settings.WORKDIR) / "current_pnr",
+                session_path,
+                current_pnr_path,
             ]
         ):
             add_files_to_tar_gz(
